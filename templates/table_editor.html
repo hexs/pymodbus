@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table Editor</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@12.4.0/dist/handsontable.full.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/handsontable@12.4.0/dist/handsontable.full.min.js"></script>
+</head>
+<body>
+<div class="container mt-5">
+    <h2 class="text-center">Editable Table</h2>
+    <button id="save-btn" class="btn btn-primary mt-3">Save Changes</button>
+    <button id="refresh-btn" class="btn btn-secondary mt-3">Refresh Table</button>
+    <div id="handsontable-container" class="mt-4"></div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const container = document.getElementById('handsontable-container');
+        let hot = null;
+
+        const loadTableData = () => {
+            fetch("/data")
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(responseData => {
+                    if (hot) {
+                        hot.destroy();
+                    }
+                    hot = new Handsontable(container, responseData);
+                })
+                .catch(error => {
+                    console.error("Error loading table data:", error);
+                    alert("Failed to load data. Please try again.");
+                });
+        };
+
+        loadTableData();
+
+        document.getElementById('save-btn').addEventListener('click', function () {
+            const updatedData = hot.getSourceData();
+
+            fetch('/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updatedData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    alert("Data saved successfully!");
+                } else {
+                    alert("Failed to save data.");
+                }
+            })
+            .catch(error => {
+                console.error("Error saving data:", error);
+                alert("Failed to save data. Please try again.");
+            });
+        });
+
+        document.getElementById('refresh-btn').addEventListener('click', function () {
+            loadTableData();
+        });
+    });
+</script>
+</body>
+</html>
